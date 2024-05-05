@@ -16,6 +16,10 @@ from guiguts.checkers import CheckerSortType
 from guiguts.data import themes
 from guiguts.file import File, the_file, NUM_RECENT_FILES
 from guiguts.footnotes import footnote_check
+from guiguts.highlight import (
+    highlight_quotbrac_callback,
+    highlight_quotbrac_change,
+)
 from guiguts.maintext import maintext
 from guiguts.mainwindow import (
     MainWindow,
@@ -327,6 +331,8 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
             ),
         )
         preferences.set_default(PrefKey.TEAROFF_MENUS, False)
+        preferences.set_default(PrefKey.HIGHLIGHT_QUOTBRAC, False)
+        preferences.set_callback(PrefKey.HIGHLIGHT_QUOTBRAC, highlight_quotbrac_callback)
 
         # Check all preferences have a default
         for pref_key in PrefKey:
@@ -457,6 +463,12 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
             lambda: find_next(backwards=True),
             "Cmd+Shift+G" if is_mac() else "Shift+F3",
         )
+        menu_search.add_checkbox(
+            "Highlight S~urrounding Quotes & Brackets",
+            lambda: highlight_quotbrac_change(True),
+            lambda: highlight_quotbrac_change(False),
+            preferences.get(PrefKey.HIGHLIGHT_QUOTBRAC),
+        )
         self.init_bookmark_menu(menu_search)
 
     def init_bookmark_menu(self, parent: Menu) -> None:
@@ -497,6 +509,7 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
                 lambda num=bm: self.file.goto_bookmark(num),  # type:ignore[misc]
                 f"Ctrl+Key-{bm}",
             )
+
 
     def init_tools_menu(self) -> None:
         """Create the Tools menu."""
