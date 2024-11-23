@@ -20,9 +20,11 @@ from guiguts.illo_sn_fixup import illosn_check
 from guiguts.highlight import (
     highlight_single_quotes,
     highlight_double_quotes,
+    show_highlight_dialog,
     remove_highlights,
     highlight_quotbrac_callback,
     highlight_aligncol_callback,
+    HIGHLIGHTDIALOG_DEFAULT_SEARCH_TYPE,
 )
 from guiguts.maintext import maintext
 from guiguts.mainwindow import (
@@ -418,6 +420,9 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
         preferences.set_callback(
             PrefKey.HIGHLIGHT_QUOTBRAC, highlight_quotbrac_callback
         )
+        preferences.set_default(PrefKey.HIGHLIGHTDIALOG_SEARCH_TYPE,
+                                HIGHLIGHTDIALOG_DEFAULT_SEARCH_TYPE)
+        preferences.set_default(PrefKey.HIGHLIGHTDIALOG_SEARCH_HISTORY, [])
 
         # Check all preferences have a default
         for pref_key in PrefKey:
@@ -587,6 +592,10 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
         menu_search.add_button(
             "Highlight ~Double Quotes in Selection",
             highlight_double_quotes,
+        )
+        menu_search.add_button(
+            "~Highlight Character, String, or Regex...",
+            show_highlight_dialog,
         )
         menu_search.add_button(
             "~Remove Highlights",

@@ -59,31 +59,65 @@ class SearchDialog(ToplevelDialog):
         super().__init__("Search & Replace", *args, **kwargs)
         self.minsize(400, 100)
 
+        # search box layout:
+        #      0         1          2          3
+        #   ++------------------------------++-------------++
+        # 0 || X reverse X match    X regex || X in sel    ||
+        # 1 || X whole   X wrap     X multi || [[ count ]] ||
+        #   ++------------------------------++             ||
+        # 2 || <<stxt>>  [[search]]         || [[ find  ]] ||
+        # 3 || <<rtxt>>  [[repl]]   [[r+s]] || [[replace]] ||
+        #   ++------------------------------++-------------++
+        # 4 || <status msg>                                ||
+        #   ++---------------------------------------------++
+
         # Frames
+        # let column 0 expand if window expands (col 1, the buttons, does not)
         self.top_frame.columnconfigure(0, weight=1)
+        # create rows 0-4, they do not grow in size
         for row in range(5):
             self.top_frame.rowconfigure(row, weight=0)
+        # this must grow the last row if the message has some kind of
+        # long text in it?
         self.top_frame.rowconfigure(6, weight=1)
+        # create a frame for the 6 checkboxes to live in
         options_frame = ttk.Frame(
             self.top_frame, padding=3, borderwidth=1, relief=tk.GROOVE
         )
+        # set the checkbox frame to start at 0,0 with colspan 3, rowspan 2.
+        # not sure what ipady, sticky do
         options_frame.grid(
             row=0, column=0, columnspan=3, rowspan=2, ipady=5, sticky="NSEW"
         )
+        # set each column within this frame to equal grow-weight
         options_frame.columnconfigure(0, weight=1)
         options_frame.columnconfigure(1, weight=1)
         options_frame.columnconfigure(2, weight=1)
+        # same for rows but... you can't resize on Y anyway? maybe this is
+        # just so they lay out evenly to begin with. Yep, that's it.
         options_frame.rowconfigure(0, weight=1)
         options_frame.rowconfigure(1, weight=1)
+        # create a frame for a message set it to 6,0, colspan=5
         message_frame = ttk.Frame(self.top_frame, padding=1)
         message_frame.grid(row=6, column=0, columnspan=5, sticky="NSEW", pady=(5, 0))
+        # create a vertical separator at 0,3 with rowspan=6 (effectively 5 though
+        # because row 6 is full width)
         self.separator = ttk.Separator(self.top_frame, orient=tk.VERTICAL)
         self.separator.grid(row=0, column=3, rowspan=6, padx=2, sticky="NSEW")
 
         # Search
+        # here's how to create a combo box input...
         style = ttk.Style()
         new_col = "#ff8080" if maintext().is_dark_theme() else "#e60000"
         style.configure("BadRegex.TCombobox", foreground=new_col)
+
+        # TODO: how to create an action button?
+        # TODO: how to create radio buttons? (or should I just have a regex
+        #       checkbox instead?)
+
+        # Proofer Comments function has an example of radio buttons
+        # Actually it's a generic thing from CheckerDialog (see
+        # checkers.py line 170-185)
 
         def is_valid_regex(new_value: str) -> bool:
             """Validation routine for Search Combobox - check value is a valid regex.
@@ -105,6 +139,8 @@ class SearchDialog(ToplevelDialog):
             family=maintext().font.cget("family"),
             size=maintext().font.cget("size"),
         )
+        # Is SEARCH_HISTORY how you get the history? Have to put that into
+        # the preferences data?
         self.search_box = Combobox(
             self.top_frame,
             PrefKey.SEARCH_HISTORY,
@@ -113,11 +149,14 @@ class SearchDialog(ToplevelDialog):
             validate="all",
             validatecommand=(self.register(is_valid_regex), "%P"),
         )
+        # place the search box
         self.search_box.grid(row=2, column=0, padx=PADX, pady=PADY, sticky="NSEW")
         # Register search box to have its focus tracked for inserting special characters
+        # this is how you get something to be the default focus, I bet
         register_focus_widget(self.search_box)
         self.search_box.focus()
 
+        # Here is how to do an action button; there's a simpel function.
         search_button = ttk.Button(
             self.top_frame,
             text="Search",
@@ -126,23 +165,28 @@ class SearchDialog(ToplevelDialog):
             command=self.search_clicked,
         )
         search_button.grid(row=2, column=1, padx=PADX, pady=PADY, sticky="NSEW")
+        # mouse bind... but what is the shift+1 ???
+        # oh this is just for shift-click to search backward.
         mouse_bind(
             search_button,
             "Shift+1",
             lambda *args: self.search_clicked(opposite_dir=True),
         )
+        # bind return to search button? ah and shift-click is search backward
         self.bind("<Return>", lambda *args: self.search_clicked())
         self.bind(
             "<Shift-Return>", lambda *args: self.search_clicked(opposite_dir=True)
         )
 
         # Count & Find All
+        # here's a simpler button example; no shift- stuff
         self.count_btn = ttk.Button(
             self.top_frame,
             text="Count",
             takefocus=False,
             command=self.count_clicked,
         )
+        # don't forget to place the button
         self.count_btn.grid(row=1, column=4, padx=PADX, pady=PADY, sticky="NSEW")
         ttk.Button(
             self.top_frame,

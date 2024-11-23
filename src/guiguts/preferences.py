@@ -82,6 +82,8 @@ class PrefKey(StrEnum):
     SCANNOS_FILENAME = auto()
     SCANNOS_HISTORY = auto()
     HIGHLIGHT_QUOTBRAC = auto()
+    HIGHLIGHTDIALOG_SEARCH_TYPE = auto()
+    HIGHLIGHTDIALOG_SEARCH_HISTORY = auto()
 
 
 class Preferences:

@@ -1,18 +1,24 @@
 """Highlight functionality."""
 
 from enum import auto, StrEnum
-from tkinter import Text
+from tkinter import Text, ttk
+from tkinter import font as tk_font
+from typing import Any
 
 from guiguts.maintext import maintext
-from guiguts.preferences import preferences, PrefKey
+from guiguts.preferences import preferences, PrefKey, PersistentString
 from guiguts.root import root
 from guiguts.utilities import IndexRange
+from guiguts.widgets import ToplevelDialog, Combobox, register_focus_widget
+
+HIGHLIGHTDIALOG_DEFAULT_SEARCH_TYPE = "exact"
 
 
 class HighlightTag(StrEnum):
     """Global highlight tag settings."""
 
     QUOTEMARK = auto()
+    STR_OR_REGEX = auto()
     SPOTLIGHT = auto()
     PAREN = auto()
     CURLY_BRACKET = auto()
@@ -42,6 +48,7 @@ class HighlightColors:
         "Light": {"bg": "#a08dfc", "fg": "black"},
         "Dark": {"bg": "#a08dfc", "fg": "white"},
     }
+    STR_OR_REGEX = QUOTEMARK
 
     SPOTLIGHT = {
         "Light": {"bg": "orange", "fg": "black"},
@@ -93,6 +100,134 @@ class HighlightColors:
         "Dark": {"bg": "#303030", "fg": "white"},
     }
 
+class HighlightDialog(ToplevelDialog):
+    """A Toplevel dialog that allows the user to apply highlights based
+    on a search string or regex.
+    
+    Attributes:
+        regex: True to use regex search."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize Highlight dialog."""
+        kwargs["resize_y"] = False
+        kwargs["disable_geometry_save"] = True
+        super().__init__("Highlight Character(s) or Regex", *args, **kwargs)
+        # self.minsize(400, 100)
+        # self.minsize(0, 0)
+        self.minsize(350, 115)
+
+        # Box consists of:
+        # Row 0: (full width) a search box with pulldown of history
+        #    Note: GG2 search history has no "clear" function; ignore that?
+        #    Re-use that code if possible. I'm guessing Nigel made it reusable.
+        #    If he didn't, try to do that.
+        # Row 1: (centered)
+        #    Column 0: radio selection "Exact"
+        #    Column 1: radio selection "Regex"
+        # Row 2: (centered)
+        #    Column 0: action button "Previous Selection"
+        #    Column 1: action button "Select Whole File"
+        # Row 3: (centered)
+        #    Column 0: action button "Apply Highlights"
+        #    Column 1: action button "Remove Highlights"
+        # GG1 permits you to resize along both x & y axes
+
+        #      0            1
+        #   ++----------------------------++
+        # 0 || <<search-text-input>>      ||  <-- colspan=2
+        # 1 || o exact      o regex       ||
+        # 2 || [[prev_sel]] [[sel_whole]] ||
+        # 3 || [[apply]]    [[remove]]    ||
+        #   ++----------------------------++
+
+        # let both columns grow on resize along X axis
+        self.top_frame.columnconfigure(0, weight=1)
+        self.top_frame.columnconfigure(1, weight=1)
+
+        # 4 rows total
+        for row in range(4):
+            # set to weight 1 so they space evenly on their own
+            self.top_frame.rowconfigure(row, weight=1)
+        
+        self.font = tk_font.Font(
+            family=maintext().font.cget("family"),
+            size=maintext().font.cget("size"),
+        )
+        # create the search box
+        self.search_box = Combobox(
+            self.top_frame,
+            PrefKey.HIGHLIGHTDIALOG_SEARCH_HISTORY,
+            width=34,
+            font=self.font,
+            # validate="all",
+            # validatecommand=(self.register(is_valid_regex), "%P"),
+        )
+        self.search_box.grid(row=0, column=0, columnspan=2)
+        register_focus_widget(self.search_box)
+        self.search_box.focus()
+
+        # radio buttons: or checkbox? in row 1
+
+        self.search_type = PersistentString(PrefKey.HIGHLIGHTDIALOG_SEARCH_TYPE)
+        ttk.Radiobutton(
+            self.top_frame,
+            text="Exact",
+            # command=lambda: print("exact"),
+            variable=search_type,
+            value="exact",
+            takefocus=False,
+        ).grid(row=1, column=0, sticky="E", padx=2)
+        ttk.Radiobutton(
+            self.top_frame,
+            text="Regex",
+            # command=lambda: print("regex"),
+            variable=search_type,
+            value="regex",
+            takefocus=False,
+        ).grid(row=1, column=1, sticky="W", padx=2)
+
+        def fake_hl_test():
+            remove_highlights()
+            _highlight_configure_tag(HighlightTag.STR_OR_REGEX, HighlightColors.STR_OR_REGEX)
+            maintext().tag_add(HighlightTag.STR_OR_REGEX, "2.3","20.3")
+
+        self.previous_selection_button = ttk.Button(
+            self.top_frame,
+            text="Previous Selection",
+            takefocus=False,
+            width=14,
+            command=maintext().restore_selection_ranges,
+        )
+        self.previous_selection_button.grid(row=2, column=0, sticky="E", padx=2)
+
+        self.select_whole_file_button = ttk.Button(
+            self.top_frame,
+            text="Select Whole File",
+            takefocus=False,
+            width=14,
+            command=lambda: maintext().do_select(
+                IndexRange(maintext().start(), maintext().end())),
+        )
+        self.select_whole_file_button.grid(row=2, column=1, sticky="W", padx=2)
+
+        self.apply_highlights_button = ttk.Button(
+            self.top_frame,
+            text="Apply Highlights",
+            takefocus=False,
+            width=14,
+            command=self.fake_hl_test,
+        )
+        self.apply_highlights_button.grid(row=3, column=0, sticky="E", padx=2)
+
+        self.remove_highlights_button = ttk.Button(
+            self.top_frame,
+            text="Remove Highlights",
+            takefocus=False,
+            width=14,
+            command=remove_highlights,
+        )
+        self.remove_highlights_button.grid(row=3, column=1, sticky="W", padx=2)
+
 
 def highlight_selection(
     pat: str,
@@ -121,9 +256,9 @@ def highlight_selection(
 
 
 def remove_highlights() -> None:
-    """Remove active highlights."""
+    """Remove manually-triggered highlights."""
     maintext().tag_delete(HighlightTag.QUOTEMARK)
-
+    maintext().tag_delete(HighlightTag.STR_OR_REGEX)
 
 def highlight_quotemarks(pat: str) -> None:
     """Highlight quote marks in current selection which match a pattern."""
@@ -501,3 +636,10 @@ def highlight_cursor_line() -> None:
         row = maintext().get_insert_index().row
         maintext().tag_add(HighlightTag.CURSOR_LINE, f"{row}.0", f"{row+1}.0")
         maintext().tag_lower(HighlightTag.CURSOR_LINE)
+
+
+def show_highlight_dialog() -> None:
+    """Show the Highlight dialog"""
+    dlg = HighlightDialog.show_dialog()
+    # dlg.search_box_set(maintext().selected_text().split("\n", 1)[0])
+    # dlg.display_message()
