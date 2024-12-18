@@ -225,64 +225,78 @@ class MainImage(tk.Frame):
         self.allow_geometry_storage = False
 
         control_frame = ttk.Frame(self)
-        control_frame.grid(row=0, column=0, columnspan=2, sticky="NEW")
+        control_frame.grid(row=0, column=0, sticky="NEWS")
         invert_btn = ttk.Checkbutton(
             control_frame,
-            text="Invert image",
+            # text="Invert image",
+            text="Invert",
             takefocus=False,
             command=self.show_image,
             variable=PersistentBoolean(PrefKey.IMAGE_INVERT),
         )
-        invert_btn.grid(row=0, column=0, sticky="NSEW", padx=(5, 3), pady=(5, 0))
+        invert_btn.grid(row=0, column=4, sticky="NSEW") #, padx=(5, 3), pady=(5, 0))
         dock_btn = ttk.Checkbutton(
             control_frame,
-            text="Dock image",
+            # text="Dock image",
+            text="Dock",
             takefocus=False,
             command=self.set_image_docking,
             variable=root().image_window_docked_state,
         )
-        dock_btn.grid(row=0, column=1, sticky="NSE", padx=3, pady=(5, 0))
+        dock_btn.grid(row=0, column=5, sticky="NSEW") #, padx=3, pady=(5, 0))
         ttk.Button(
             control_frame,
-            text="Close",
+            # text="Close",
+            text="❌",
             takefocus=False,
             command=self.hide_func,
-        ).grid(row=0, column=2, sticky="NSEW", padx=(3, 5), pady=(5, 0))
-        control_frame.columnconfigure(1, weight=1)
+        ).grid(row=0, column=6, sticky="NSEW") #, padx=(3, 5), pady=(5, 0))
+        # control_frame.columnconfigure(1, weight=1)
 
-        zoom_frame = ttk.Frame(self)
-        zoom_frame.grid(row=1, column=0, columnspan=2, sticky="NEW")
-        ttk.Label(zoom_frame, text="Zoom:").grid(
-            row=1, column=0, sticky="NSEW", padx=(5, 3), pady=5
-        )
+        # zoom_frame = ttk.Frame(self)
+        # zoom_frame.grid(row=1, column=0, columnspan=2, sticky="NEW")
+        # ttk.Label(zoom_frame, text="Zoom:").grid(
+        #     row=1, column=0, sticky="NSEW", padx=(5, 3), pady=5
+        # )
         self.zoom_in_btn = ttk.Button(
-            zoom_frame,
-            text="+",
+            # zoom_frame,
+            control_frame,
+            # text="+",
+            text="➕",
             takefocus=False,
             command=lambda: self.image_zoom(zoom_in=True),
         )
-        self.zoom_in_btn.grid(row=1, column=1, sticky="NSEW", padx=3, pady=5)
+        self.zoom_in_btn.grid(row=0, column=0, sticky="NSEW") #, padx=3, pady=5)
         self.zoom_out_btn = ttk.Button(
-            zoom_frame,
-            text="-",
+            # zoom_frame,
+            control_frame,
+            # text="-",
+            text="➖",
             takefocus=False,
             command=lambda: self.image_zoom(zoom_in=False),
         )
-        self.zoom_out_btn.grid(row=1, column=2, sticky="NSEW", padx=3, pady=5)
+        self.zoom_out_btn.grid(row=0, column=1, sticky="NSEW") #, padx=3, pady=5)
         ttk.Button(
-            zoom_frame,
-            text="Fit to width",
+            # zoom_frame,
+            control_frame,
+            # text="Fit to width",
+            # text="↔︎",
+            text="⬅︎ Fit ➡︎",
             takefocus=False,
             command=self.image_zoom_to_width,
-        ).grid(row=1, column=3, sticky="NSEW", padx=3, pady=5)
+        ).grid(row=0, column=2, sticky="NSEW") #, padx=3, pady=5)
         fth_btn = ttk.Button(
-            zoom_frame,
-            text="Fit to height",
+            # zoom_frame,
+            control_frame,
+            # text="Fit to height",
+            # text="↕︎",
+            # text="⇵",
+            text="⬆︎ Fit ⬇︎",
             takefocus=False,
             command=self.image_zoom_to_height,
         )
-        fth_btn.grid(row=1, column=4, sticky="NSEW", padx=3, pady=5)
-        zoom_frame.columnconfigure(5, weight=1)
+        fth_btn.grid(row=0, column=3, sticky="NSEW") #, padx=3, pady=5)
+        # zoom_frame.columnconfigure(5, weight=1)
 
         # Separate bindings needed for docked (root) and floated (self) states
         for widget in (root(), self):
