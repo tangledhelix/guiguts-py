@@ -644,6 +644,6 @@ class TextWrapper:
         for line in to_lines:
             rewrapped_para = "".join((rewrapped_para, line))
         # If input paragraph did not have a terminating newline, output shouldn't
-        if paragraph[-1] != "\n":
+        if len(paragraph) and paragraph[-1] != "\n":
             rewrapped_para = rewrapped_para.rstrip("\n")
         return rewrapped_para
