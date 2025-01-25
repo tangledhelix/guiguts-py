@@ -54,6 +54,9 @@ class Root(tk.Tk):
         self.save_config = False
         self.bind("<Configure>", self._handle_config)
 
+        photo = tk.PhotoImage(file = '/Users/dan/repos/dp/guiguts-py/src/guiguts/data/icons/noun-gutenberg-press-86670-512x512.png')
+        self.wm_iconphoto(False, photo)
+
     def report_callback_exception(
         self, exc: type[BaseException], val: BaseException, tb: TracebackType | None
     ) -> None:
