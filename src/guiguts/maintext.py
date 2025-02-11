@@ -3524,13 +3524,13 @@ class MainText(tk.Text):
         """
         wgt = self.focus_widget()
         key = event.char
+        keysym = event.keysym
         if not key:
             return ""
-        escape = "\x1b"
         # If in insert mode, need to catch Escape, but otherwise
         # just let key be processed as normal
         if self.vim_flags.insert_mode:
-            if key == escape:
+            if keysym == "Escape":
                 wgt.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
                 self.vim_flags.insert_mode = False
                 return "break"
@@ -3541,7 +3541,7 @@ class MainText(tk.Text):
         line_len = len(cur_line)
         # Handle pending commands next
         if self.vim_flags.pending_command:
-            if key == escape:
+            if keysym == "Escape":
                 if self.vim_flags.pending_command == "R":
                     wgt.mark_set(tk.INSERT, f"{tk.INSERT}-1c")
                 self.vim_flags.pending_command = ""
@@ -3607,7 +3607,7 @@ class MainText(tk.Text):
             wgt.mark_set(tk.INSERT, f"{tk.INSERT} linestart")
         elif key == "$":
             wgt.mark_set(tk.INSERT, f"{tk.INSERT} lineend")
-        elif key == escape:
+        if keysym == "Escape":
             self.vim_flags.pending_multiplier = ""
             self.vim_flags.multiplier = ""
         # Insert commands
