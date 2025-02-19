@@ -233,6 +233,9 @@ class MainImage(tk.Frame):
         self.dock_func = dock_func
         self.allow_geometry_storage = False
 
+        self.image_autofit_width_active = tk.BooleanVar()
+        self.image_autofit_height_active = tk.BooleanVar()
+
         control_frame = ttk.Frame(self)
         control_frame.grid(row=0, column=0, columnspan=2, sticky="NSEW")
         control_frame.columnconfigure(8, weight=1)
@@ -275,21 +278,28 @@ class MainImage(tk.Frame):
         )
         self.zoom_out_btn.grid(row=0, column=3, sticky="NSEW")
 
+        # TODO: this needs to follow the style
+        # themed_style().configure("Custom.ImageAutofitHeightButton", foreground="black")
         self.ftw_btn = ttk.Button(
             control_frame,
             text="← Fit →",
             takefocus=False,
-            command=self.image_zoom_to_width,
         )
         self.ftw_btn.grid(row=0, column=4, sticky="NSEW", padx=(5, 0))
+        mouse_bind(self.ftw_btn, "ButtonRelease-1", lambda _event: self.image_zoom_to_width())
+        mouse_bind(self.ftw_btn, "Shift-ButtonRelease-1", lambda _event: self.auto_fit_width())
 
+        # TODO: this needs to follow the style
+        # themed_style().configure("Custom.ImageAutofitHeightButton", foreground="black")
         self.fth_btn = ttk.Button(
             control_frame,
             text="↑ Fit ↓",
+            # style="Custom.ImageAutofitHeightButton",
             takefocus=False,
-            command=self.image_zoom_to_height,
         )
         self.fth_btn.grid(row=0, column=5, sticky="NSEW")
+        mouse_bind(self.fth_btn, "ButtonRelease-1", lambda _event: self.image_zoom_to_height())
+        mouse_bind(self.fth_btn, "Shift-ButtonRelease-1", lambda _event: self.auto_fit_height())
 
         self.invert_btn = ttk.Checkbutton(
             control_frame,
@@ -512,6 +522,10 @@ class MainImage(tk.Frame):
             self.canvas.yview_moveto(0)
             self.canvas.xview_moveto(0)
             self.show_image()
+            if self.image_autofit_width_active.get():
+                mainimage().image_zoom_to_width()
+            elif self.image_autofit_height_active.get():
+                mainimage().image_zoom_to_height()
         else:
             self.clear_image()
         return True
@@ -595,6 +609,34 @@ class MainImage(tk.Frame):
 
         # Reached end of dir listing without finding next file
         sound_bell()
+
+    def auto_fit_width(self) -> None:
+        """Toggle image auto-fit (by width)"""
+        self.image_autofit_width_active.set(not self.image_autofit_width_active.get())
+        if self.image_autofit_width_active.get():
+            self.ftw_btn.configure(text="← AUTO →")
+            # themed_style().configure("Custom.ImageAutofitWidthButton", foreground="red")
+            self.image_autofit_height_active.set(False)
+            self.fth_btn.configure(text="↑ Fit ↓")
+            # themed_style().configure("Custom.ImageAutofitHeightButton", foreground="black")
+            self.image_zoom_to_width()
+        else:
+            self.ftw_btn.configure(text="← Fit →")
+            # themed_style().configure("Custom.ImageAutofitWidthButton", foreground="black")
+
+    def auto_fit_height(self) -> None:
+        """Toggle image auto-fit (by height)"""
+        self.image_autofit_height_active.set(not self.image_autofit_height_active.get())
+        if self.image_autofit_height_active.get():
+            self.fth_btn.configure(text="↑ AUTO ↓")
+            # themed_style().configure("Custom.ImageAutofitHeightButton", foreground="red")
+            self.image_autofit_width_active.set(False)
+            self.ftw_btn.configure(text="← Fit →")
+            # themed_style().configure("Custom.ImageAutofitWidthButton", foreground="black")
+            self.image_zoom_to_height()
+        else:
+            self.fth_btn.configure(text="↑ Fit ↓")
+            # themed_style().configure("Custom.ImageAutofitHeightButton", foreground="black")
 
 
 class StatusBar(ttk.Frame):
