@@ -3,6 +3,7 @@
 
 from idlelib.redirector import WidgetRedirector  # type: ignore[import-not-found]
 import logging
+import darkdetect
 import os.path
 import time
 import tkinter as tk
@@ -460,6 +461,7 @@ class StatusBar(ttk.Frame):
             func = self.callbacks[key]
             if func is not None:
                 self.set(key, func())
+        print(darkdetect.theme()) 
         self.after(200, self._update)
 
     def add_binding(self, key: str, event: str, callback: Callable[[], None]) -> None:

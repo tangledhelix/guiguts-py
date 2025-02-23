@@ -11,6 +11,8 @@ python = "^3.11"
 Pillow = "^10.1"
 roman = "^4.1"
 regex = "^2023.12"
+sv-ttk = "^2.6.0"
+darkdetect = "^0.8.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.12"
