@@ -667,7 +667,7 @@ def theme_name_internal_from_user(user_theme: str) -> str:
         Internal name for theme.
     """
     match user_theme:
-        case "Default":
+        case "Automatic":
             if is_mac():
                 return "aqua"
             if is_windows():

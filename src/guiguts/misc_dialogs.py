@@ -53,7 +53,7 @@ class PreferencesDialog(ToplevelDialog):
             theme_frame, textvariable=PersistentString(PrefKey.THEME_NAME)
         )
         cb.grid(column=1, row=0, sticky="NEW")
-        cb["values"] = ["Default", "Dark", "Light"]
+        cb["values"] = ["Automatic", "Dark", "Light"]
         cb["state"] = "readonly"
         tearoff_check = ttk.Checkbutton(
             appearance_frame,

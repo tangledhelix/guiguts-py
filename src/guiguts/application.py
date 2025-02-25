@@ -13,6 +13,7 @@ from tkinter import messagebox
 from typing import Optional
 import unicodedata
 import webbrowser
+import darkdetect
 
 from guiguts.data import themes
 from guiguts.file import File, the_file, NUM_RECENT_FILES
@@ -140,6 +141,9 @@ class Guiguts:
                 root().destroy()
 
         root().protocol("WM_DELETE_WINDOW", check_save_and_destroy)
+
+        # Start autodetect loop for OS dark mode, if appropriate
+        self._update_theme()
 
     def parse_args(self) -> None:
         """Parse command line args"""
@@ -412,13 +416,8 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
         preferences.set_default(PrefKey.TEXT_MARKUP_GESPERRT, "~")
         preferences.set_default(PrefKey.TEXT_MARKUP_FONT, "=")
         preferences.set_default(PrefKey.PAGESEP_AUTO_TYPE, PageSepAutoType.AUTO_FIX)
-        preferences.set_default(PrefKey.THEME_NAME, "Default")
-        preferences.set_callback(
-            PrefKey.THEME_NAME,
-            lambda value: themed_style().theme_use(
-                theme_name_internal_from_user(value)
-            ),
-        )
+        preferences.set_default(PrefKey.THEME_NAME, "Automatic")
+        preferences.set_callback(PrefKey.THEME_NAME, self.theme_name_callback)
         preferences.set_default(PrefKey.TEAROFF_MENUS, False)
         preferences.set_default(PrefKey.COMPOSE_HISTORY, [])
         # Since fonts aren't available until Tk has initialized, set default font family
@@ -1091,6 +1090,32 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
         alert_handler.setLevel(logging.ERROR)
         alert_handler.setFormatter(formatter)
         logger.addHandler(alert_handler)
+
+    def theme_name_callback(self, value: str) -> None:
+        """Callback for when THEME_NAME preference is changed.
+        
+        Responsible for starting auto-dark-detection loop for Automatic theme,
+        if theme was not Automatic at startup."""
+        if value in ("Light", "Dark"):
+            themed_style().theme_use(
+                theme_name_internal_from_user(value)
+            )
+        elif value == "Automatic":
+            self._update_theme()
+
+    def _update_theme(self) -> None:
+        """Self-calling method to check OS dark mode on a repeating cycle,
+        updating application theme if necessary."""
+        if preferences.get(PrefKey.THEME_NAME) == "Automatic":
+            os_mode = darkdetect.theme()
+            tk_theme = themed_style().theme_use()
+
+            if os_mode == "Light" and tk_theme != "awlight":
+                themed_style().theme_use("awlight")
+            elif os_mode == "Dark" and tk_theme != "awdark":
+                themed_style().theme_use("awdark")
+
+            root().after(1000, self._update_theme)
 
 
 def main() -> None:

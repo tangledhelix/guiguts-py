@@ -983,7 +983,8 @@ class MainText(tk.Text):
         light_bg = "gray98"
         light_fg = "black"
         theme_name = preferences.get(PrefKey.THEME_NAME)
-        if theme_name == "Default":
+        # TODO: change this autodetection?
+        if theme_name == "Automatic":
             theme_name = "Dark" if self.is_dark_theme() else "Light"
         if theme_name == "Dark":
             widget.configure(
@@ -3103,11 +3104,10 @@ class MainText(tk.Text):
             self.focus_widget().configure(insertontime=ontime)
 
     def is_dark_theme(self) -> bool:
-        """Returns True if theme is dark, which is assumed to be the case if
-        the brightness of button text color is greater than half strength (mid-gray)."""
-        text_color = themed_style().lookup("TButton", "foreground")
-        rgb_sum = sum(self.winfo_rgb(text_color))  # 0-65535 for each component
-        return rgb_sum > 12767 * 3
+        """Returns True if theme is set to awdark."""
+        if themed_style().theme_use() == "awdark":
+            return True
+        return False
 
     def _highlight_configure_tag(
         self, tag_name: str, tag_colors: dict[str, dict[str, str]]
@@ -3118,6 +3118,8 @@ class MainText(tk.Text):
             tag_name: Tag to be configured.
             tag_colors: Dictionary of attributes for each theme.
         """
+        # TODO: refactor this stuff maybe? Do we need .dark_theme when
+        # we can just ask for .is_dark_theme? ...
         theme = "Dark" if self.dark_theme else "Light"
         self.tag_configure(tag_name, **tag_colors[theme])
 
