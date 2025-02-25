@@ -984,7 +984,7 @@ class MainText(tk.Text):
         light_fg = "black"
         theme_name = preferences.get(PrefKey.THEME_NAME)
         # TODO: change this autodetection?
-        if theme_name == "Automatic":
+        if theme_name == "Default":
             theme_name = "Dark" if self.is_dark_theme() else "Light"
         if theme_name == "Dark":
             widget.configure(

@@ -416,7 +416,7 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
         preferences.set_default(PrefKey.TEXT_MARKUP_GESPERRT, "~")
         preferences.set_default(PrefKey.TEXT_MARKUP_FONT, "=")
         preferences.set_default(PrefKey.PAGESEP_AUTO_TYPE, PageSepAutoType.AUTO_FIX)
-        preferences.set_default(PrefKey.THEME_NAME, "Automatic")
+        preferences.set_default(PrefKey.THEME_NAME, "Default")
         preferences.set_callback(PrefKey.THEME_NAME, self.theme_name_callback)
         preferences.set_default(PrefKey.TEAROFF_MENUS, False)
         preferences.set_default(PrefKey.COMPOSE_HISTORY, [])
@@ -1094,19 +1094,19 @@ Fifth Floor, Boston, MA 02110-1301 USA."""
     def theme_name_callback(self, value: str) -> None:
         """Callback for when THEME_NAME preference is changed.
         
-        Responsible for starting auto-dark-detection loop for Automatic theme,
-        if theme was not Automatic at startup."""
+        Responsible for starting auto-dark-detection loop for Default theme,
+        if theme was not Default at startup."""
         if value in ("Light", "Dark"):
             themed_style().theme_use(
                 theme_name_internal_from_user(value)
             )
-        elif value == "Automatic":
+        elif value == "Default":
             self._update_theme()
 
     def _update_theme(self) -> None:
         """Self-calling method to check OS dark mode on a repeating cycle,
         updating application theme if necessary."""
-        if preferences.get(PrefKey.THEME_NAME) == "Automatic":
+        if preferences.get(PrefKey.THEME_NAME) == "Default":
             os_mode = darkdetect.theme()
             tk_theme = themed_style().theme_use()
 

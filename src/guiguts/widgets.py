@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Any, Optional, TypeVar, Callable
 import webbrowser
+import darkdetect
 
 import regex as re
 
@@ -667,12 +668,13 @@ def theme_name_internal_from_user(user_theme: str) -> str:
         Internal name for theme.
     """
     match user_theme:
-        case "Automatic":
-            if is_mac():
-                return "aqua"
-            if is_windows():
-                return "vista"
-            return "default"
+        case "Default":
+            if darkdetect.theme() == "Light":
+                return "awlight"
+            elif darkdetect.theme() == "Dark":
+                return "awdark"
+            else:
+                assert False, "Error detecting OS theme"
         case "Dark":
             return "awdark"
         case "Light":
