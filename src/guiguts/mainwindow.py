@@ -7,7 +7,7 @@ import os.path
 import subprocess
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, EventType
 from typing import Any, Callable, Optional
 
 from PIL import Image, ImageTk, ImageChops
@@ -484,8 +484,6 @@ class MainImage(tk.Frame):
         """
         self.image_scale *= scale_factor
         preferences.set(PrefKey.IMAGE_SCALE_FACTOR, self.image_scale)
-        self.canvas.xview_moveto(0.0)
-        self.canvas.yview_moveto(0.0)
         self.show_image()
 
     def show_image(self, internal_only: bool = False) -> None:
@@ -658,7 +656,7 @@ class MainImage(tk.Frame):
             pass
         self.allow_geometry_storage = True
 
-    def handle_configure(self, _e: tk.Event) -> None:
+    def handle_configure(self, evt: Optional[tk.Event]) -> None:
         """Handle configure event."""
         if preferences.get(PrefKey.IMAGE_WINDOW_DOCKED):
             try:  # In case unlucky timing means it tries to configure during undocking & finds sash doesn't exist
@@ -672,6 +670,11 @@ class MainImage(tk.Frame):
                 preferences.set(PrefKey.IMAGE_FLOAT_GEOMETRY, tk.Wm.geometry(self))  # type: ignore[call-overload]
             except tk.TclError:
                 pass
+        if evt and evt.type == EventType.Configure:
+            if preferences.get(PrefKey.IMAGE_AUTOFIT_WIDTH):
+                mainimage().image_zoom_to_width()
+            elif preferences.get(PrefKey.IMAGE_AUTOFIT_HEIGHT):
+                mainimage().image_zoom_to_height()
 
     def handle_enter(self, event: tk.Event) -> None:
         """Handle enter event."""
