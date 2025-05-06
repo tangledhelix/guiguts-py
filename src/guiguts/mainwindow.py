@@ -10,6 +10,7 @@ import subprocess
 import time
 import tkinter as tk
 from tkinter import ttk, messagebox, EventType
+
 from typing import Any, Callable, Optional
 from pathlib import Path
 
@@ -35,6 +36,7 @@ from guiguts.widgets import (
     ToolTip,
     themed_style,
     Busy,
+    Combobox,
 )
 
 logger = logging.getLogger(__package__)
@@ -651,6 +653,8 @@ class MainImage(tk.Frame):
         self.short_name = ""
         self.short_name_label = tk.StringVar(self, "<no image>")
         self.rotation_details: dict[str, int] = {}
+        self.images_list = []
+        self.current_image = tk.StringVar()
 
         # Introduce an apparently superfluous Frame to contain everything.
         # This is because when MainImage is undocked, Tk converts it to a
@@ -768,6 +772,37 @@ class MainImage(tk.Frame):
             use_pointer_pos=True,
             msg="Dock / undock image viewer from main window",
         )
+        
+        # imglist_choices = ["apple","orange","banana"]
+        # imglist_choices_var = tk.StringVar(value=imglist_choices)
+        # self.imglist = Listbox(
+        #     control_frame,
+        #     height=3,
+        #     listvariable=imglist_choices_var
+        # )
+        # self.imglist.grid(row=0, column=9, sticky="NSEW")
+
+        # self.curr_image = tk.StringVar()
+        # self.images_list = ['a', 'b', 'c', 'd','e','f','g']
+        # self.curr_image.set('e')
+        self.imglist = ttk.Combobox(
+            control_frame,
+            textvariable=self.current_image,
+            # values=self.images_list,
+            height=24,
+            width=8,
+            takefocus=False,
+        )
+        self.imglist.grid(row=0, column=9, sticky="NSW")
+        # TODO: change image when this triggers
+        # TODO: also bind in undocked form? is it needed? try undocked.
+        # TODO: move this to where the label is now, replacing label.
+        # self.imglist.bind('<<ComboboxSelected>>', lambda e: print("saw event"))
+        def _comboxselevent(e):
+            print("<<ComboboxSelected>>")
+            self.jump_to_image(mainimage().imglist.get())
+
+        self.imglist.bind('<<ComboboxSelected>>', _comboxselevent)
 
         self.close_btn = ttk.Button(
             control_frame,
@@ -1058,6 +1093,8 @@ class MainImage(tk.Frame):
             self.width, self.height = self.image.size
             self.canvas.yview_moveto(0)
             self.canvas.xview_moveto(0)
+            # TODO: should the short-name contain the extension? what if 2 files with diff extens??
+            #       could affect rotation data for people who are already using this from last beta...
             self.set_short_name()
             if self.short_name in self.rotation_details:
                 if self.rotation_details[self.short_name] != 0:
@@ -1069,6 +1106,18 @@ class MainImage(tk.Frame):
                 mainimage().image_zoom_to_width()
             elif preferences.get(PrefKey.IMAGE_AUTOFIT_HEIGHT):
                 mainimage().image_zoom_to_height()
+            # TODO: refactor into a method to get all files in curr dir?
+            # TODO: refactor another bit to get short name list?
+            current_dir = os.path.dirname(self.filename)
+            if os.path.isdir(current_dir):
+                for fn in sorted(os.listdir(current_dir)):
+                    # self.images_list.append(Path(fn).stem)
+                    if fn.startswith('.'):
+                        continue
+                    self.images_list.append(fn)
+                self.imglist.configure(values=self.images_list)
+                # self.current_image.set(self.short_name_label.get())
+                self.current_image.set(os.path.basename(self.filename))
         else:
             self.clear_image()
         return True
@@ -1127,10 +1176,12 @@ class MainImage(tk.Frame):
 
     def handle_enter(self, _event: tk.Event) -> None:
         """Handle enter event."""
+        print("<Enter>")
         self.auto_image_state(AutoImageState.NORMAL)
 
     def handle_leave(self, _event: tk.Event) -> None:
         """Handle leave event."""
+        print("<Leave>")
         # Restart auto img
         if self.auto_image_state() == AutoImageState.PAUSED:
             self.auto_image_state(AutoImageState.RESTARTING)
@@ -1153,6 +1204,7 @@ class MainImage(tk.Frame):
         """Set or query whether auto_image is paused or restarting."""
         if value is not None:
             self._auto_image_state = value
+            print(f"state => {value}")
         return self._auto_image_state
 
     def next_image(self, reverse: bool = False) -> None:
@@ -1187,6 +1239,48 @@ class MainImage(tk.Frame):
 
         # Reached end of dir listing without finding next file
         sound_bell()
+
+    def jump_to_image(self, filename) -> None:
+        """Load a specific image file.
+
+        Args:
+            filename: The image to load.
+        """
+        if not filename:
+            sound_bell()
+            return
+
+        # Check current directory is valid
+        # TODO: this assumes self.filename is set
+        current_dir = os.path.dirname(self.filename)
+        if not os.path.isdir(current_dir):
+            logger.error(f"Image directory invalid: {current_dir}")
+            return
+
+        # current_basename = os.path.basename(self.filename)
+        # found = False
+        # for fn in sorted(os.listdir(current_dir), reverse=reverse):
+            # Skip non-image files by checking extension
+            # if os.path.splitext(fn)[1] not in (".jpg", ".gif", ".png"):
+            #     continue
+            # If found on previous time through loop, this is the file we want
+            # if found:
+        self.load_image(os.path.join(current_dir, filename))
+        self.auto_image_state(AutoImageState.PAUSED)
+        return
+            #     return
+            # if fn == current_basename:
+            #     found = True
+
+        # Reached end of dir listing without finding next file
+        # sound_bell()
+
+        # This sequence is happening:
+        # <<ComboboxSelected>>
+        # state => AutoImageState.PAUSED
+        # <Enter>
+        # state => AutoImageState.NORMAL
+        # <Leave>
 
     def set_short_name(self) -> None:
         """Extract a short name from the full image path to use as a label
