@@ -232,10 +232,16 @@ class TextLineNumbers(tk.Canvas):
         self.text_color = themed_style().lookup("TButton", "foreground")
 
         # Drag along the line number gutter to select lines
+        self._autoscroll_active = False
+        self.out_of_bounds_distance = 0
+        self.out_of_bounds_direction = ""
+        self.last_cursor_index = IndexRowCol(1,0)
         self.drag_begin_index = IndexRowCol(1, 0)
-        self.bind("<Button-1>", self.drag_handler_start)
-        self.bind("<B1-Motion>", self.drag_handler)
+        self.bind("<Button-1>", self.autoscroll_start)
+        self.bind("<B1-Motion>", self.autoscroll_calculate)
+        self.bind("<ButtonRelease-1>", self.autoscroll_stop)
         # Shift-click in line number gutter to extend selection to start of clicked line
+        # TODO: restructure this like above if it works.
         self.bind("<Shift-Button-1>", self.shift_drag_handler_start)
         self.bind("<Shift-B1-Motion>", self.shift_drag_handler)
         bind_mouse_wheel(self, self.textwidget)
@@ -290,20 +296,99 @@ class TextLineNumbers(tk.Canvas):
         self.configure(background=themed_style().lookup("TButton", "background"))
         self.text_color = themed_style().lookup("TButton", "foreground")
 
-    def drag_handler_start(self, evt: tk.Event) -> None:
+    def autoscroll_start(self, evt: tk.Event) -> None:
         """Handle initial click for drag-select operation."""
+        self._autoscroll_active = True
+        print("Scroll handling START")
         self.textwidget.focus_set()
         self.textwidget.update()  # So focus is correct for do_select
         self.drag_begin_index = self.cursor_index(evt)
-        self.drag_handler(evt)
+        self.autoscroll_callback(evt)
 
-    def drag_handler(self, evt: tk.Event) -> None:
+    def autoscroll_stop(self, evt: tk.Event) -> None:
+        """Handle click release for drag-select operation."""
+        self._autoscroll_active = False
+        # self.drag_end_index = self.cursor_index(evt)
+        print("Scroll handling STOP")
+
+    def autoscroll_calculate(self, evt: tk.Event) -> None:
+        """Calculate where we are regarding scrolling (improve this message)"""
+        if not self._autoscroll_active:
+            return
+        # Try to detect overscroll / out of bounds
+        _, widget_y = evt.widget.winfo_pointerxy()
+        # widget_x -= evt.widget.winfo_rootx()
+        widget_y -= evt.widget.winfo_rooty()
+        # widget_w, widget_h = evt.widget.winfo_width(), evt.widget.winfo_height()
+        widget_h = evt.widget.winfo_height()
+        print(f"y={widget_y}, h={widget_h}")
+
+        out_of_bounds_distance = 0
+        out_of_bounds_direction = ""
+        if 0 <= widget_y <= widget_h:
+            pass
+        elif widget_y < 0:
+            out_of_bounds_distance = abs(widget_y)
+            out_of_bounds_direction = "up"
+            print(f"dir={out_of_bounds_direction}, distance={out_of_bounds_distance}")
+        elif widget_y > widget_h:
+            out_of_bounds_distance = abs(widget_y - widget_h)
+            out_of_bounds_direction = "down"
+            print(f"dir={out_of_bounds_direction}, distance={out_of_bounds_distance}")
+        
+        self.out_of_bounds_distance = out_of_bounds_distance
+        self.out_of_bounds_direction = out_of_bounds_direction
+
+    def autoscroll_callback(self, evt: tk.Event) -> None:
         """Select text based on the current drag-select motion event."""
+        if not self._autoscroll_active:
+            print("SKIPPED")
+            return
+        
+        print("FIRING")
+
+        self.autoscroll_calculate(evt)
+        
+        # Attempt to "smooth scroll" by basing the delay on math rather than
+        # choosing some arbitrary boundaries. Enforce a minimum and maximum
+        # value, otherwise we start at about 5 seconds and get to ridiculous
+        # minimums.
+        # scroll_delay_fastest = 100
+        # scroll_delay_slowest = 500
+        # if out_of_bounds_distance == 0:
+        #     scroll_delay = scroll_delay_slowest
+        # else:
+        #     scroll_delay = max(
+        #         scroll_delay_slowest,
+        #         min(scroll_delay_fastest, (5000 / out_of_bounds_distance)),
+        #     )
+
+        # purposely slow for dev/test
+        scroll_delay = 250
+
+        # # Increase speed for horizontal scrolling
+        # if out_of_bounds_direction in ("left", "right"):
+        #     scroll_delay = scroll_delay / 1.5
+
+        # Scroll in the appropriate direction (x or y).
+        if self.out_of_bounds_distance > 0:
+            if self.out_of_bounds_direction == "up":
+                evt.widget.textwidget.yview_scroll(-1, "units")
+            elif self.out_of_bounds_direction == "down":
+                evt.widget.textwidget.yview_scroll(1, "units")
+        # elif widget_x < 0:
+        #     event.widget.xview_scroll(-1, "units")
+        # elif widget_x > width:
+        #     event.widget.xview_scroll(1, "units")
+
+        # Original code
         drag_range = self.drag_range(evt)
         maintext().do_select(drag_range)
         self.set_insert_index(evt)
         maintext().linenumbers.redraw()
         maintext().peer_linenumbers.redraw()
+
+        self.after(int(scroll_delay), lambda: self.autoscroll_callback(evt))
 
     def shift_drag_handler_start(self, evt: tk.Event) -> None:
         """Handle initial click for shift-drag-select operation."""
@@ -336,7 +421,10 @@ class TextLineNumbers(tk.Canvas):
 
     def cursor_index(self, evt: tk.Event) -> IndexRowCol:
         """Return IndexRowCol for the row the cursor is positioned on."""
-        return IndexRowCol(self.textwidget.index(f"@0,{evt.y}"))
+        if self.out_of_bounds_direction not in ("up", "down"):
+            self.last_cursor_index = IndexRowCol(self.textwidget.index(f"@0,{evt.y}"))
+
+        return self.last_cursor_index
 
     def drag_range(self, evt: tk.Event) -> IndexRange:
         """Return an IndexRange representing text to select for the
